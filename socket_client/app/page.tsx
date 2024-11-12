@@ -1,6 +1,42 @@
+"use client";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import io from "socket.io-client";
 
+const socket = io("http://localhost:5000");
 export default function Home() {
+  const [notification, setNotification] = useState<{ message: string }[] | []>(
+    []
+  );
+  useEffect(() => {
+    // check and get push notification permission
+    if (
+      Notification.permission === "default" ||
+      Notification.permission === "denied"
+    ) {
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          console.log("Notification Permission Granted!");
+        } else {
+          console.log("Notification Permission Denied!");
+        }
+      });
+    }
+    socket.on("notification", (data) => {
+      console.log("Notification", data);
+      if (Notification.permission === "granted") {
+        new Notification("New Notification From N I", {
+          body: data.message,
+          icon: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT34-YmEOyF93JHsuW_ryPYeuJLw6C3GE60VHF-NAn2MtOwlyWw4EGCH7hW_xt5OjoOXGo&usqp=CAU",
+        });
+      }
+      setNotification((prev) => [...prev, data]);
+    });
+    return () => {
+      socket.off("notification");
+    };
+  }, []);
+
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
@@ -12,6 +48,10 @@ export default function Home() {
           height={38}
           priority
         />
+        <h1>SocketIO</h1>
+        {notification.map((n, k) => (
+          <p key={k}>{n?.message}</p>
+        ))}
         <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
           <li className="mb-2">
             Get started by editing{" "}
